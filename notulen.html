@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lembar Notulen</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 40px;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: #ccc;
+        }
+
+        .line-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .line-container .content {
+            position: relative;
+            z-index: 1;
+            background-color: #ffffff;
+            padding: 5px;
+        }
+
+        .line-container:before {
+            content: '';
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: linear-gradient(to bottom, #ccc 1px, transparent 1px);
+            background-size: 100% 25px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 600px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-size: 16px;
+            font-family: 'Times New Roman', Times, serif;
+            background-color: transparent;
+            line-height: 1.6;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+
+        textarea::placeholder {
+            color: #888;
+        }
+
+        .print-button {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .print-button:hover {
+            background-color: #0056b3;
+        }
+
+        .info {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="info">
+        <p><strong>Tanggal Rapat:</strong> <span id="date"></span></p>
+        <p><strong>Waktu Rapat:</strong> <span id="time"></span></p>
+        <p><strong>Lokasi Rapat:</strong> <span id="location"></span></p>
+        <p><strong>Agenda Rapat:</strong> <span id="agenda"></span></p>
+    </div>
+    <h1 id="judul" style="text-align: center; font-size: 24px; margin-bottom: 40px;">Lembar Notulen Rapat</h1>
+    <div id="pages">
+        <div class="line-container">
+            <textarea placeholder="Ketik notulen rapat di sini..."></textarea>
+            <div class="line"></div>
+        </div>
+    </div>
+    <div class="print-button" onclick="printToPDF()">Cetak ke PDF</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Mengambil data dari local storage dan menampilkannya
+        const date = localStorage.getItem('date') || 'Tanggal tidak tersedia';
+        const time = localStorage.getItem('time') || 'Waktu tidak tersedia';
+        const location = localStorage.getItem('location') || 'Lokasi tidak tersedia';
+        const agenda = localStorage.getItem('agenda') || 'Agenda tidak tersedia';
+
+        document.getElementById('date').innerText = date;
+        document.getElementById('time').innerText = time;
+        document.getElementById('location').innerText = location;
+        document.getElementById('agenda').innerText = agenda;
+
+        // Membersihkan local storage setelah data ditampilkan
+        localStorage.removeItem('date');
+        localStorage.removeItem('time');
+        localStorage.removeItem('location');
+        localStorage.removeItem('agenda');
+    });
+
+    document.addEventListener('input', function (e) {
+        if (e.target.tagName === 'TEXTAREA') {
+            const textarea = e.target;
+            if (textarea.scrollHeight > textarea.clientHeight) {
+                addNewPage();
+            }
+        }
+    });
+
+    function addNewPage() {
+        const pages = document.getElementById('pages');
+        const newPage = document.createElement('div');
+        newPage.classList.add('line-container');
+        newPage.innerHTML = '<textarea placeholder="Ketik notulen rapat di sini..."></textarea><div class="line"></div>';
+        pages.appendChild(newPage);
+    }
+
+    async function printToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Menambahkan judul ke dalam PDF
+        const title = document.getElementById('judul').innerText;
+        doc.setFontSize(24);
+        doc.text(title, 105, 20, null, null, 'center');
+        doc.setFontSize(12);
+
+        // Menambahkan informasi peserta ke dalam PDF
+        const date = document.getElementById('date').innerText;
+        const time = document.getElementById('time').innerText;
+        const location = document.getElementById('location').innerText;
+        const agenda = document.getElementById('agenda').innerText;
+
+        doc.text(`Tanggal Rapat: ${date}`, 10, 30);
+        doc.text(`Waktu Rapat: ${time}`, 10, 40);
+        doc.text(`Lokasi Rapat: ${location}`, 10, 50);
+        doc.text(`Agenda Rapat: ${agenda}`, 10, 60);
+
+        const pages = document.querySelectorAll('.line-container textarea');
+
+        pages.forEach((page, index) => {
+            if (index > 0) {
+                doc.addPage();
+            }
+            const text = page.value.split('\n');
+            let y = 70; // Posisi Y awal untuk teks setelah informasi peserta
+            text.forEach(line => {
+                doc.text(line, 10, y);
+                y += 10; // Jarak antar baris
+            });
+        });
+
+        doc.save('notulen-rapat.pdf');
+    }
+</script>
+
+</body>
+</html>
